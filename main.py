@@ -63,27 +63,34 @@ def get_cbr_metals_history(today: datetime) -> dict:
 
 # === CoinGecko: крипта ===
 
-def get_crypto_on_date(date: datetime) -> dict:
-    date_str = date.strftime("%d-%m-%Y")
-    coins = {"bitcoin": "btc", "ethereum": "eth", "the-open-network": "ton"}
-    result = {}
-    for coin_id, key in coins.items():
-        url = f"https://api.coingecko.com/api/v3/coins/{coin_id}/history"
-        price = None
-        for attempt in range(3):
-            try:
-                r = requests.get(url, params={"date": date_str, "localization": "false"}, timeout=15)
-                data = r.json()
-                price = data["market_data"]["current_price"]["usd"]
-                break
-            except (KeyError, TypeError):
-                if attempt < 2:
-                    import time; time.sleep(2)
-        result[key] = price
-    return result
+COIN_IDS = {"bitcoin": "btc", "ethereum": "eth", "the-open-network": "ton"}
+PERIODS = {7: "d7", 14: "d14", 30: "d30", 365: "d365"}
+
+
+def _coingecko_market_chart(coin_id: str) -> dict | None:
+    """Один запрос за 365 дней — возвращает {days: price} для всех периодов."""
+    url = f"https://api.coingecko.com/api/v3/coins/{coin_id}/market_chart"
+    params = {"vs_currency": "usd", "days": "365", "interval": "daily"}
+    try:
+        r = requests.get(url, params=params, timeout=20)
+        data = r.json()
+        prices = data.get("prices", [])  # [[timestamp_ms, price], ...]
+        if not prices:
+            return None
+        now_ms = datetime.now().timestamp() * 1000
+        result = {}
+        for days in (7, 14, 30, 365):
+            target_ms = now_ms - days * 86400 * 1000
+            # берём точку ближайшую к нужной дате
+            closest = min(prices, key=lambda p: abs(p[0] - target_ms))
+            result[days] = closest[1]
+        return result
+    except Exception:
+        return None
 
 
 def get_crypto_history(today: datetime) -> dict:
+    # Текущие цены
     url = "https://api.coingecko.com/api/v3/simple/price"
     params = {"ids": "bitcoin,ethereum,the-open-network", "vs_currencies": "usd"}
     r = requests.get(url, params=params, timeout=10)
@@ -93,10 +100,19 @@ def get_crypto_history(today: datetime) -> dict:
             "btc": data["bitcoin"]["usd"],
             "eth": data["ethereum"]["usd"],
             "ton": data["the-open-network"]["usd"],
-        }
+        },
+        "d7": {}, "d14": {}, "d30": {}, "d365": {},
     }
-    for days in (7, 14, 30, 365):
-        result[f"d{days}"] = get_crypto_on_date(today - timedelta(days=days))
+
+    # Исторические — один запрос на монету за 365 дней
+    import time
+    for coin_id, key in COIN_IDS.items():
+        chart = _coingecko_market_chart(coin_id)
+        if chart:
+            for days, slot in PERIODS.items():
+                result[slot][key] = chart[days]
+        time.sleep(1.5)  # уважаем rate limit CoinGecko
+
     return result
 
 
@@ -106,9 +122,9 @@ def fmt_change(current, past) -> str:
     if past is None or past == 0:
         return "—"
     pct = (current - past) / past * 100
-    icon = "🟢" if pct >= 0 else "🔴"
+    arrow = "↑" if pct >= 0 else "↓"
     sign = "+" if pct >= 0 else ""
-    return f"{icon}{sign}{pct:.1f}%"
+    return f"{arrow}{sign}{pct:.1f}%"
 
 
 def changes_line(current, hist, key) -> str:
