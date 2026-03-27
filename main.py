@@ -69,12 +69,17 @@ def get_crypto_on_date(date: datetime) -> dict:
     result = {}
     for coin_id, key in coins.items():
         url = f"https://api.coingecko.com/api/v3/coins/{coin_id}/history"
-        r = requests.get(url, params={"date": date_str, "localization": "false"}, timeout=15)
-        data = r.json()
-        try:
-            result[key] = data["market_data"]["current_price"]["usd"]
-        except (KeyError, TypeError):
-            result[key] = None
+        price = None
+        for attempt in range(3):
+            try:
+                r = requests.get(url, params={"date": date_str, "localization": "false"}, timeout=15)
+                data = r.json()
+                price = data["market_data"]["current_price"]["usd"]
+                break
+            except (KeyError, TypeError):
+                if attempt < 2:
+                    import time; time.sleep(2)
+        result[key] = price
     return result
 
 
@@ -143,9 +148,9 @@ async def send_summary(bot: Bot):
             f"{changes_line(m.get('silver', 0), metals_hist, 'silver')}\n\n"
 
             f"<b>──── Крипта ──────────────────</b>\n"
-            f"🟠 <b>Bitcoin</b>   <code>{c.get('btc', 0):>10,.0f} $</code>\n"
+            f"🏅 <b>Bitcoin</b>   <code>{c.get('btc', 0):>10,.0f} $</code>\n"
             f"{changes_line(c.get('btc', 0), crypto_hist, 'btc')}\n\n"
-            f"🔷 <b>Ethereum</b>  <code>{c.get('eth', 0):>10,.0f} $</code>\n"
+            f"💠 <b>Ethereum</b>  <code>{c.get('eth', 0):>10,.0f} $</code>\n"
             f"{changes_line(c.get('eth', 0), crypto_hist, 'eth')}\n\n"
             f"💎 <b>TON</b>       <code>{c.get('ton', 0):>10.2f} $</code>\n"
             f"{changes_line(c.get('ton', 0), crypto_hist, 'ton')}"
