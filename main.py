@@ -122,9 +122,9 @@ def fmt_change(current, past) -> str:
     if past is None or past == 0:
         return "—"
     pct = (current - past) / past * 100
-    arrow = "↑" if pct >= 0 else "↓"
+    icon = "🟢↑" if pct >= 0 else "🔴↓"
     sign = "+" if pct >= 0 else ""
-    return f"{arrow}{sign}{pct:.1f}%"
+    return f"{icon}<b>{sign}{pct:.1f}%</b>"
 
 
 def changes_line(current, hist, key) -> str:
@@ -153,22 +153,22 @@ async def send_summary(bot: Bot):
             f"📊 <b>Сводка — {now_str}</b>\n\n"
 
             f"<b>──── Валюты ────────────────</b>\n"
-            f"💵 USD      <code>{rates.get('USD', 0):>8.2f} ₽</code>\n"
-            f"💶 EUR      <code>{rates.get('EUR', 0):>8.2f} ₽</code>\n"
-            f"💷 GBP      <code>{rates.get('GBP', 0):>8.2f} ₽</code>\n\n"
+            f"💵 USD      <b><code>{rates.get('USD', 0):>8.2f} ₽</code></b>\n"
+            f"💶 EUR      <b><code>{rates.get('EUR', 0):>8.2f} ₽</code></b>\n"
+            f"💷 GBP      <b><code>{rates.get('GBP', 0):>8.2f} ₽</code></b>\n\n"
 
             f"<b>──── Металлы ────────────────</b>\n"
-            f"🥇 <b>Золото</b>   <code>{m.get('gold', 0):>10.2f} ₽/г</code>\n"
+            f"🥇 <b>Золото</b>   <b><code>{m.get('gold', 0):>10.2f} ₽/г</code></b>\n"
             f"{changes_line(m.get('gold', 0), metals_hist, 'gold')}\n\n"
-            f"🥈 <b>Серебро</b>  <code>{m.get('silver', 0):>10.4f} ₽/г</code>\n"
+            f"🥈 <b>Серебро</b>  <b><code>{m.get('silver', 0):>10.4f} ₽/г</code></b>\n"
             f"{changes_line(m.get('silver', 0), metals_hist, 'silver')}\n\n"
 
             f"<b>──── Крипта ──────────────────</b>\n"
-            f"🏅 <b>Bitcoin</b>   <code>{c.get('btc', 0):>10,.0f} $</code>\n"
+            f"🏅 <b>Bitcoin</b>   <b><code>{c.get('btc', 0):>10,.0f} $</code></b>\n"
             f"{changes_line(c.get('btc', 0), crypto_hist, 'btc')}\n\n"
-            f"💠 <b>Ethereum</b>  <code>{c.get('eth', 0):>10,.0f} $</code>\n"
+            f"💠 <b>Ethereum</b>  <b><code>{c.get('eth', 0):>10,.0f} $</code></b>\n"
             f"{changes_line(c.get('eth', 0), crypto_hist, 'eth')}\n\n"
-            f"💎 <b>TON</b>       <code>{c.get('ton', 0):>10.2f} $</code>\n"
+            f"💎 <b>TON</b>       <b><code>{c.get('ton', 0):>10.2f} $</code></b>\n"
             f"{changes_line(c.get('ton', 0), crypto_hist, 'ton')}"
         )
 
