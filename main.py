@@ -122,9 +122,9 @@ def fmt_change(current, past) -> str:
     if past is None or past == 0:
         return "—"
     pct = (current - past) / past * 100
-    icon = "🟢↑" if pct >= 0 else "🔴↓"
+    arrow = "↑" if pct >= 0 else "↓"
     sign = "+" if pct >= 0 else ""
-    return f"{icon}<b>{sign}{pct:.1f}%</b>"
+    return f"{arrow}<b>{sign}{pct:.1f}%</b>"
 
 
 def changes_line(current, hist, key) -> str:
